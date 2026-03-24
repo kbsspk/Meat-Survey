@@ -4,397 +4,357 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบรายงานลงพื้นที่ สสจ. ภาคกลาง</title>
-    <script src="[https://unpkg.com/react@18/umd/react.production.min.js](https://unpkg.com/react@18/umd/react.production.min.js)"></script>
-    <script src="[https://unpkg.com/react-dom@18/umd/react-dom.production.min.js](https://unpkg.com/react-dom@18/umd/react-dom.production.min.js)"></script>
-    <script src="[https://unpkg.com/@babel/standalone/babel.min.js](https://unpkg.com/@babel/standalone/babel.min.js)"></script>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
+    <!-- โหลด React และ Libraries ที่จำเป็น (แก้ไขลิงก์ให้ถูกต้อง) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
     <div id="root"></div>
 
     <script type="text/babel">
+        // ลิงก์ Google Apps Script ของคุณ
         const GAS_URL = "https://script.google.com/macros/s/AKfycbyZ3OdXk_ir4pog8WGJlSMVYsWl55-RECead8kFtPo5tb5QngOtgnso-lKM659S9er7/exec"; 
 
-        // ตัวแปรและรายชื่อจังหวัด
-        const CENTRAL_PROVINCES = ['ชัยนาท', 'นครนายก', 'นครปฐม', 'นนทบุรี', 'ปทุมธานี', 'พระนครศรีอยุธยา', 'ลพบุรี', 'สมุทรปราการ', 'สมุทรสงคราม', 'สมุทรสาคร', 'สระบุรี', 'สิงห์บุรี', 'สุพรรณบุรี', 'อ่างทอง'];
+        // ตัวแปรที่ดึงมาจาก React Global
         const { useState, useEffect } = React;
 
+        const CENTRAL_PROVINCES = [
+            'ชัยนาท', 'นครนายก', 'นครปฐม', 'นนทบุรี', 'ปทุมธานี', 
+            'พระนครศรีอยุธยา', 'ลพบุรี', 'สมุทรปราการ', 'สมุทรสงคราม', 
+            'สมุทรสาคร', 'สระบุรี', 'สิงห์บุรี', 'สุพรรณบุรี', 'อ่างทอง'
+        ];
+
+        // --- ไอคอนแบบ SVG ฝังตัวเพื่อป้องกันปัญหาโหลดไม่ขึ้น ---
+        const Camera = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
+        const Send = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
+        const Target = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
+        const BarChart3 = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><rect width="4" height="7" x="7" y="10" rx="1"/><rect width="4" height="12" x="15" y="5" rx="1"/></svg>;
+        const AlertCircle = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+        const FileText = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>;
+        const MapPin = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
+        const CheckCircle = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+
+
         function App() {
-            import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Send, Target, BarChart3, AlertCircle, FileText, MapPin, Calendar, CheckCircle, Image as ImageIcon } from 'lucide-react';
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [records, setRecords] = useState([]);
+            const [targets, setTargets] = useState({});
+            const [isLoading, setIsLoading] = useState(true);
+            const [isSaving, setIsSaving] = useState(false);
+            const [alertMsg, setAlertMsg] = useState(null);
 
-// รายชื่อจังหวัดภาคกลาง (ไม่รวม กทม.)
-const CENTRAL_PROVINCES = [
-  'ชัยนาท', 'นครนายก', 'นครปฐม', 'นนทบุรี', 'ปทุมธานี', 
-  'พระนครศรีอยุธยา', 'ลพบุรี', 'สมุทรปราการ', 'สมุทรสงคราม', 
-  'สมุทรสาคร', 'สระบุรี', 'สิงห์บุรี', 'สุพรรณบุรี', 'อ่างทอง'
-];
+            // Form States
+            const [recordForm, setRecordForm] = useState({ date: new Date().toISOString().split('T')[0], province: '', facility: '', advice: '', photo: '' });
+            const [photoPreview, setPhotoPreview] = useState(null);
+            const [targetForm, setTargetForm] = useState({ province: '', amount: '' });
 
-// ⚠️ ให้เปลี่ยน URL นี้เป็น Web App URL ที่ได้จาก Google Apps Script ของคุณ ⚠️
-const GAS_URL = ""; 
+            useEffect(() => {
+                fetchData();
+            }, []);
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [records, setRecords] = useState([]);
-  const [targets, setTargets] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [alertMsg, setAlertMsg] = useState(null);
+            const fetchData = async () => {
+                setIsLoading(true);
+                try {
+                    const response = await fetch(GAS_URL);
+                    const data = await response.json();
+                    setRecords(data.records || []);
+                    setTargets(data.targets || {});
+                } catch (error) {
+                    console.error("Error fetching data:", error);
+                    showAlert('เชื่อมต่อสำเร็จ แต่ยังไม่มีข้อมูล กรุณาทดลองบันทึก', 'success');
+                }
+                setIsLoading(false);
+            };
 
-  // Form States
-  const [recordForm, setRecordForm] = useState({ date: new Date().toISOString().split('T')[0], province: '', facility: '', advice: '', photo: '' });
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [targetForm, setTargetForm] = useState({ province: '', amount: '' });
+            const showAlert = (msg, type = 'success') => {
+                setAlertMsg({ text: msg, type });
+                setTimeout(() => setAlertMsg(null), 3000);
+            };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+            // Image Compression
+            const handlePhotoChange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    if (!GAS_URL) {
-      // โหมด Mock Data (กรณีที่ยังไม่ได้เชื่อมต่อ Google Sheets)
-      setRecords([
-        { date: new Date().toISOString().split('T')[0], province: 'สมุทรปราการ', facility: 'โรงงานลูกชิ้นสมบูรณ์', advice: 'แนะนำเรื่องการจัดการขยะ' },
-        { date: '2023-10-15', province: 'นนทบุรี', facility: 'โรงงานหมูยอ นนทบุรี', advice: 'เพิ่มจุดล้างมือ' }
-      ]);
-      setTargets({ 'สมุทรปราการ': 5, 'นนทบุรี': 3, 'ปทุมธานี': 4 });
-      setIsLoading(false);
-      return;
-    }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 400; // บีบอัดขนาดภาพ
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        const base64Photo = canvas.toDataURL('image/jpeg', 0.6);
+                        setPhotoPreview(base64Photo);
+                        setRecordForm({ ...recordForm, photo: base64Photo });
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
 
-    try {
-      const response = await fetch(GAS_URL);
-      const data = await response.json();
-      setRecords(data.records || []);
-      setTargets(data.targets || {});
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      showAlert('เกิดข้อผิดพลาดในการดึงข้อมูล โปรดตรวจสอบการเชื่อมต่อ', 'error');
-    }
-    setIsLoading(false);
-  };
+            // Submissions
+            const submitRecord = async (e) => {
+                e.preventDefault();
+                setIsSaving(true);
+                try {
+                    const payload = { action: 'saveRecord', ...recordForm };
+                    await fetch(GAS_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    showAlert('บันทึกข้อมูลสำเร็จ!');
+                    setRecordForm({ date: new Date().toISOString().split('T')[0], province: '', facility: '', advice: '', photo: '' });
+                    setPhotoPreview(null);
+                    setTimeout(fetchData, 1500); // ดีเลย์เล็กน้อยรอข้อมูลใน sheet อัปเดต
+                    setActiveTab('dashboard');
+                } catch (error) {
+                    showAlert('เกิดข้อผิดพลาดในการบันทึก', 'error');
+                }
+                setIsSaving(false);
+            };
 
-  const showAlert = (msg, type = 'success') => {
-    setAlertMsg({ text: msg, type });
-    setTimeout(() => setAlertMsg(null), 3000);
-  };
+            const submitTarget = async (e) => {
+                e.preventDefault();
+                setIsSaving(true);
+                try {
+                    const payload = { action: 'saveTarget', target: parseInt(targetForm.amount), province: targetForm.province };
+                    await fetch(GAS_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    showAlert('ตั้งเป้าหมายสำเร็จ!');
+                    setTargetForm({ province: '', amount: '' });
+                    setTimeout(fetchData, 1500);
+                } catch (error) {
+                    showAlert('เกิดข้อผิดพลาดในการตั้งเป้าหมาย', 'error');
+                }
+                setIsSaving(false);
+            };
 
-  // --- Image Compression ---
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 400; // บีบอัดขนาดภาพไม่ให้เกินความจุ Google Sheet Cell
-        const scaleSize = MAX_WIDTH / img.width;
-        canvas.width = MAX_WIDTH;
-        canvas.height = img.height * scaleSize;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        const base64Photo = canvas.toDataURL('image/jpeg', 0.6); // Quality 60%
-        setPhotoPreview(base64Photo);
-        setRecordForm({ ...recordForm, photo: base64Photo });
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // --- Submissions ---
-  const submitRecord = async (e) => {
-    e.preventDefault();
-    setIsSaving(true);
-    
-    if (!GAS_URL) {
-      setTimeout(() => {
-        setRecords([...records, recordForm]);
-        setRecordForm({ date: new Date().toISOString().split('T')[0], province: '', facility: '', advice: '', photo: '' });
-        setPhotoPreview(null);
-        showAlert('บันทึกข้อมูลสำเร็จ (Mock Mode)');
-        setIsSaving(false);
-        setActiveTab('dashboard');
-      }, 1000);
-      return;
-    }
-
-    try {
-      const payload = { action: 'saveRecord', ...recordForm };
-      await fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'no-cors', // เพื่อข้ามปัญหา CORS เบื้องต้นสำหรับ GAS
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      showAlert('บันทึกข้อมูลสำเร็จ!');
-      setRecordForm({ date: new Date().toISOString().split('T')[0], province: '', facility: '', advice: '', photo: '' });
-      setPhotoPreview(null);
-      fetchData();
-      setActiveTab('dashboard');
-    } catch (error) {
-      showAlert('เกิดข้อผิดพลาดในการบันทึก', 'error');
-    }
-    setIsSaving(false);
-  };
-
-  const submitTarget = async (e) => {
-    e.preventDefault();
-    setIsSaving(true);
-
-    if (!GAS_URL) {
-      setTimeout(() => {
-        setTargets({ ...targets, [targetForm.province]: parseInt(targetForm.amount) });
-        showAlert('ตั้งเป้าหมายสำเร็จ (Mock Mode)');
-        setIsSaving(false);
-        setTargetForm({ province: '', amount: '' });
-      }, 1000);
-      return;
-    }
-
-    try {
-      const payload = { action: 'saveTarget', target: parseInt(targetForm.amount), province: targetForm.province };
-      await fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      showAlert('ตั้งเป้าหมายสำเร็จ!');
-      setTargetForm({ province: '', amount: '' });
-      fetchData();
-    } catch (error) {
-      showAlert('เกิดข้อผิดพลาดในการตั้งเป้าหมาย', 'error');
-    }
-    setIsSaving(false);
-  };
-
-  // --- Dashboard Analytics ---
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  
-  // กรองเฉพาะข้อมูลเดือนปัจจุบัน
-  const thisMonthRecords = records.filter(r => {
-    if (!r.date) return false;
-    const d = new Date(r.date);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  });
-
-  // คำนวณความคืบหน้ารวม (สะสมทั้งหมดเทียบกับเป้าหมายโครงการ)
-  const overallProvinceStats = CENTRAL_PROVINCES.reduce((acc, prov) => {
-    const totalVisits = records.filter(r => r.province === prov).length;
-    const target = targets[prov] || 0;
-    const progress = target > 0 ? Math.min((totalVisits / target) * 100, 100) : 0;
-    acc[prov] = { totalVisits, target, progress };
-    return acc;
-  }, {});
-
-  // หาจังหวัดที่ยังไม่ได้รายงานผล "ในเดือนนี้"
-  const missingProvinces = CENTRAL_PROVINCES.filter(prov => {
-    const visitsThisMonth = thisMonthRecords.filter(r => r.province === prov).length;
-    return visitsThisMonth === 0;
-  });
-
-  // --- Render UI ---
-  return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <header className="bg-emerald-700 text-white p-4 shadow-md sticky top-0 z-10">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <FileText className="h-6 w-6" /> ระบบรายงานสถานที่ผลิตเนื้อสัตว์
-        </h1>
-        <p className="text-sm text-emerald-100">เขตภาคกลาง (สสจ.)</p>
-      </header>
-
-      {/* Alert Banner */}
-      {alertMsg && (
-        <div className={`fixed top-20 left-1/2 -translate-x-1/2 p-3 rounded shadow-lg z-50 text-white ${alertMsg.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
-          {alertMsg.text}
-        </div>
-      )}
-
-      {/* Main Content */}
-      <main className="p-4 max-w-4xl mx-auto">
-        
-        {/* === TAB: DASHBOARD === */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6 animate-in fade-in">
-            {/* Overview Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-xl shadow border border-emerald-100 flex flex-col items-center justify-center text-center">
-                <div className="text-emerald-600 font-bold text-3xl">{records.length}</div>
-                <div className="text-gray-500 text-sm">ลงพื้นที่สะสม (แห่ง)</div>
-              </div>
-              <div className="bg-white p-4 rounded-xl shadow border border-blue-100 flex flex-col items-center justify-center text-center">
-                <div className="text-blue-500 font-bold text-3xl">{thisMonthRecords.length}</div>
-                <div className="text-gray-500 text-sm">ลงพื้นที่เดือนนี้ (แห่ง)</div>
-              </div>
-              <div className="bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col items-center justify-center text-center md:col-span-1 col-span-2">
-                <div className="text-orange-500 font-bold text-3xl">{missingProvinces.length}</div>
-                <div className="text-gray-500 text-sm">ยังไม่รายงานเดือนนี้</div>
-              </div>
-            </div>
-
-            {/* Alert: Missing Provinces */}
-            {missingProvinces.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                <h3 className="text-red-700 font-semibold flex items-center gap-2 mb-2">
-                  <AlertCircle className="h-5 w-5" /> จังหวัดที่ยังไม่ได้รายงานในเดือนนี้
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {missingProvinces.map(prov => (
-                    <span key={prov} className="bg-white text-red-600 px-3 py-1 rounded-full text-sm border border-red-200">
-                      {prov}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Progress Bars */}
-            <div className="bg-white rounded-xl shadow border border-gray-100 p-4">
-              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-emerald-600" /> ความคืบหน้าสะสม (รวมทั้งโครงการ)
-              </h3>
-              
-              {isLoading ? (
-                <div className="text-center py-4 text-gray-400">กำลังโหลดข้อมูล...</div>
-              ) : (
-                <div className="space-y-4">
-                  {CENTRAL_PROVINCES.map(prov => {
-                    const stat = overallProvinceStats[prov];
-                    return (
-                      <div key={prov} className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium text-gray-700">{prov}</span>
-                          <span className="text-gray-500">{stat.totalVisits} / {stat.target > 0 ? stat.target : '?'} แห่ง</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                          <div 
-                            className={`h-2.5 rounded-full ${stat.progress === 100 ? 'bg-emerald-500' : stat.progress > 0 ? 'bg-blue-500' : 'bg-transparent'}`} 
-                            style={{ width: `${stat.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* === TAB: RECORD FORM === */}
-        {activeTab === 'record' && (
-          <form onSubmit={submitRecord} className="bg-white rounded-xl shadow border border-gray-100 p-5 space-y-4 animate-in fade-in slide-in-from-bottom-4">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-              <MapPin className="h-5 w-5 text-emerald-600" /> บันทึกผลการลงพื้นที่
-            </h2>
+            // Dashboard Analytics
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่ลงพื้นที่</label>
-              <input type="date" required className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" 
-                value={recordForm.date} onChange={e => setRecordForm({...recordForm, date: e.target.value})} />
-            </div>
+            const thisMonthRecords = records.filter(r => {
+                if (!r.date) return false;
+                const d = new Date(r.date);
+                return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            });
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
-              <select required className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
-                value={recordForm.province} onChange={e => setRecordForm({...recordForm, province: e.target.value})}>
-                <option value="" disabled>-- เลือกจังหวัด --</option>
-                {CENTRAL_PROVINCES.map(prov => <option key={prov} value={prov}>{prov}</option>)}
-              </select>
-            </div>
+            // คำนวณความคืบหน้ารวม (สะสมทั้งหมดเทียบกับเป้าหมายโครงการ)
+            const overallProvinceStats = CENTRAL_PROVINCES.reduce((acc, prov) => {
+                const totalVisits = records.filter(r => r.province === prov).length;
+                const target = targets[prov] || 0;
+                const progress = target > 0 ? Math.min((totalVisits / target) * 100, 100) : 0;
+                acc[prov] = { totalVisits, target, progress };
+                return acc;
+            }, {});
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อสถานที่ผลิตอาหาร/ผลิตภัณฑ์</label>
-              <input type="text" required placeholder="เช่น โรงงานไส้กรอก..." className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                value={recordForm.facility} onChange={e => setRecordForm({...recordForm, facility: e.target.value})} />
-            </div>
+            // หาจังหวัดที่ยังไม่ได้รายงานผล "ในเดือนนี้"
+            const missingProvinces = CENTRAL_PROVINCES.filter(prov => {
+                const visitsThisMonth = thisMonthRecords.filter(r => r.province === prov).length;
+                return visitsThisMonth === 0;
+            });
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">คำแนะนำที่ให้ (สรุป)</label>
-              <textarea required rows="3" placeholder="ระบุคำแนะนำด้านสุขลักษณะ..." className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                value={recordForm.advice} onChange={e => setRecordForm({...recordForm, advice: e.target.value})}></textarea>
-            </div>
+            return (
+                <div className="min-h-screen bg-gray-50 pb-20">
+                    <header className="bg-emerald-700 text-white p-4 shadow-md sticky top-0 z-10">
+                        <h1 className="text-xl font-bold flex items-center gap-2">
+                            <FileText className="h-6 w-6" /> ระบบรายงานสถานที่ผลิตเนื้อสัตว์
+                        </h1>
+                        <p className="text-sm text-emerald-100">เขตภาคกลาง (สสจ.)</p>
+                    </header>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">แนบภาพถ่าย</label>
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Camera className="w-8 h-8 mb-2 text-gray-400" />
-                  <p className="text-sm text-gray-500"><span className="font-semibold">กดเพื่อถ่ายรูป</span> หรือเลือกไฟล์ภาพ</p>
+                    {alertMsg && (
+                        <div className={`fixed top-20 left-1/2 -translate-x-1/2 p-3 rounded shadow-lg z-50 text-white ${alertMsg.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
+                            {alertMsg.text}
+                        </div>
+                    )}
+
+                    <main className="p-4 max-w-4xl mx-auto">
+                        
+                        {/* TAB: DASHBOARD */}
+                        {activeTab === 'dashboard' && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div className="bg-white p-4 rounded-xl shadow border border-emerald-100 flex flex-col items-center justify-center text-center">
+                                        <div className="text-emerald-600 font-bold text-3xl">{records.length}</div>
+                                        <div className="text-gray-500 text-sm">ลงพื้นที่สะสม (แห่ง)</div>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-xl shadow border border-blue-100 flex flex-col items-center justify-center text-center">
+                                        <div className="text-blue-500 font-bold text-3xl">{thisMonthRecords.length}</div>
+                                        <div className="text-gray-500 text-sm">ลงพื้นที่เดือนนี้ (แห่ง)</div>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col items-center justify-center text-center md:col-span-1 col-span-2">
+                                        <div className="text-orange-500 font-bold text-3xl">{missingProvinces.length}</div>
+                                        <div className="text-gray-500 text-sm">ยังไม่รายงานเดือนนี้</div>
+                                    </div>
+                                </div>
+
+                                {missingProvinces.length > 0 && (
+                                    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                                        <h3 className="text-red-700 font-semibold flex items-center gap-2 mb-2">
+                                            <AlertCircle className="h-5 w-5" /> จังหวัดที่ยังไม่ได้รายงานในเดือนนี้
+                                        </h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {missingProvinces.map(prov => (
+                                                <span key={prov} className="bg-white text-red-600 px-3 py-1 rounded-full text-sm border border-red-200">
+                                                    {prov}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="bg-white rounded-xl shadow border border-gray-100 p-4">
+                                    <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                        <BarChart3 className="h-5 w-5 text-emerald-600" /> ความคืบหน้าสะสม (รวมทั้งโครงการ)
+                                    </h3>
+                                    
+                                    {isLoading ? (
+                                        <div className="text-center py-4 text-gray-400">กำลังโหลดข้อมูล...</div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {CENTRAL_PROVINCES.map(prov => {
+                                                const stat = overallProvinceStats[prov];
+                                                return (
+                                                    <div key={prov} className="space-y-1">
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="font-medium text-gray-700">{prov}</span>
+                                                            <span className="text-gray-500">{stat.totalVisits} / {stat.target > 0 ? stat.target : '?'} แห่ง</span>
+                                                        </div>
+                                                        <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                                            <div 
+                                                                className={`h-2.5 rounded-full ${stat.progress === 100 ? 'bg-emerald-500' : stat.progress > 0 ? 'bg-blue-500' : 'bg-transparent'}`} 
+                                                                style={{ width: `${stat.progress}%` }}
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB: RECORD FORM */}
+                        {activeTab === 'record' && (
+                            <form onSubmit={submitRecord} className="bg-white rounded-xl shadow border border-gray-100 p-5 space-y-4">
+                                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
+                                    <MapPin className="h-5 w-5 text-emerald-600" /> บันทึกผลการลงพื้นที่
+                                </h2>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">วันที่ลงพื้นที่</label>
+                                    <input type="date" required className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" 
+                                        value={recordForm.date} onChange={e => setRecordForm({...recordForm, date: e.target.value})} />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+                                    <select required className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                                        value={recordForm.province} onChange={e => setRecordForm({...recordForm, province: e.target.value})}>
+                                        <option value="" disabled>-- เลือกจังหวัด --</option>
+                                        {CENTRAL_PROVINCES.map(prov => <option key={prov} value={prov}>{prov}</option>)}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อสถานที่ผลิตอาหาร/ผลิตภัณฑ์</label>
+                                    <input type="text" required placeholder="เช่น โรงงานไส้กรอก..." className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                        value={recordForm.facility} onChange={e => setRecordForm({...recordForm, facility: e.target.value})} />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">คำแนะนำที่ให้ (สรุป)</label>
+                                    <textarea required rows="3" placeholder="ระบุคำแนะนำด้านสุขลักษณะ..." className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                        value={recordForm.advice} onChange={e => setRecordForm({...recordForm, advice: e.target.value})}></textarea>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">แนบภาพถ่าย</label>
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <Camera className="w-8 h-8 mb-2 text-gray-400" />
+                                            <p className="text-sm text-gray-500"><span className="font-semibold">กดเพื่อถ่ายรูป</span> หรือเลือกไฟล์ภาพ</p>
+                                        </div>
+                                        <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                                    </label>
+                                    {photoPreview && (
+                                        <div className="mt-2 relative">
+                                            <img src={photoPreview} alt="Preview" className="w-full h-48 object-cover rounded-lg border" />
+                                            <div className="absolute top-2 right-2 bg-emerald-500 text-white text-xs px-2 py-1 rounded shadow">
+                                                <CheckCircle className="inline w-3 h-3 mr-1"/> แนบรูปแล้ว
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button type="submit" disabled={isSaving} className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-emerald-700 active:scale-95 transition flex justify-center items-center gap-2">
+                                    {isSaving ? 'กำลังบันทึก...' : <><Send className="h-5 w-5"/> บันทึกข้อมูล</>}
+                                </button>
+                            </form>
+                        )}
+
+                        {/* TAB: SET TARGETS */}
+                        {activeTab === 'target' && (
+                            <form onSubmit={submitTarget} className="bg-white rounded-xl shadow border border-gray-100 p-5 space-y-4">
+                                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
+                                    <Target className="h-5 w-5 text-blue-600" /> ตั้งค่าเป้าหมายประจำจังหวัด
+                                </h2>
+                                <p className="text-sm text-gray-500 mb-4">สำหรับผู้รับผิดชอบระดับจังหวัด เพื่อตั้งเป้าหมายรวมตลอดทั้งโครงการ</p>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">เลือกจังหวัดของคุณ</label>
+                                    <select required className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                        value={targetForm.province} onChange={e => setTargetForm({...targetForm, province: e.target.value})}>
+                                        <option value="" disabled>-- เลือกจังหวัด --</option>
+                                        {CENTRAL_PROVINCES.map(prov => <option key={prov} value={prov}>{prov}</option>)}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">เป้าหมายจำนวนสถานที่ (แห่ง)</label>
+                                    <input type="number" min="1" required placeholder="ระบุตัวเลข" className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={targetForm.amount} onChange={e => setTargetForm({...targetForm, amount: e.target.value})} />
+                                </div>
+
+                                <button type="submit" disabled={isSaving} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-blue-700 active:scale-95 transition flex justify-center items-center gap-2">
+                                    {isSaving ? 'กำลังบันทึก...' : <><CheckCircle className="h-5 w-5"/> บันทึกเป้าหมาย</>}
+                                </button>
+                            </form>
+                        )}
+
+                    </main>
+
+                    <nav className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 pb-safe shadow-lg">
+                        <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center p-2 rounded-lg w-1/3 ${activeTab === 'dashboard' ? 'text-emerald-600 font-semibold bg-emerald-50' : 'text-gray-500'}`}>
+                            <BarChart3 className="h-6 w-6" />
+                            <span className="text-xs mt-1">แดชบอร์ด</span>
+                        </button>
+                        <button onClick={() => setActiveTab('record')} className={`flex flex-col items-center p-2 rounded-lg w-1/3 ${activeTab === 'record' ? 'text-emerald-600 font-semibold bg-emerald-50' : 'text-gray-500'}`}>
+                            <MapPin className="h-6 w-6" />
+                            <span className="text-xs mt-1">ลงพื้นที่</span>
+                        </button>
+                        <button onClick={() => setActiveTab('target')} className={`flex flex-col items-center p-2 rounded-lg w-1/3 ${activeTab === 'target' ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-500'}`}>
+                            <Target className="h-6 w-6" />
+                            <span className="text-xs mt-1">เป้าหมาย</span>
+                        </button>
+                    </nav>
                 </div>
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
-              </label>
-              {photoPreview && (
-                <div className="mt-2 relative">
-                  <img src={photoPreview} alt="Preview" className="w-full h-48 object-cover rounded-lg border" />
-                  <div className="absolute top-2 right-2 bg-emerald-500 text-white text-xs px-2 py-1 rounded shadow"><CheckCircle className="inline w-3 h-3 mr-1"/> แนบรูปแล้ว</div>
-                </div>
-              )}
-            </div>
-
-            <button type="submit" disabled={isSaving} className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-emerald-700 active:scale-95 transition flex justify-center items-center gap-2">
-              {isSaving ? 'กำลังบันทึก...' : <><Send className="h-5 w-5"/> บันทึกข้อมูล</>}
-            </button>
-          </form>
-        )}
-
-        {/* === TAB: SET TARGETS === */}
-        {activeTab === 'target' && (
-          <form onSubmit={submitTarget} className="bg-white rounded-xl shadow border border-gray-100 p-5 space-y-4 animate-in fade-in slide-in-from-bottom-4">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-              <Target className="h-5 w-5 text-blue-600" /> ตั้งค่าเป้าหมายประจำจังหวัด
-            </h2>
-            <p className="text-sm text-gray-500 mb-4">สำหรับผู้รับผิดชอบระดับจังหวัด เพื่อตั้งเป้าหมายรวมตลอดทั้งโครงการ</p>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">เลือกจังหวัดของคุณ</label>
-              <select required className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                value={targetForm.province} onChange={e => setTargetForm({...targetForm, province: e.target.value})}>
-                <option value="" disabled>-- เลือกจังหวัด --</option>
-                {CENTRAL_PROVINCES.map(prov => <option key={prov} value={prov}>{prov}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">เป้าหมายจำนวนสถานที่ (แห่ง)</label>
-              <input type="number" min="1" required placeholder="ระบุตัวเลข" className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                value={targetForm.amount} onChange={e => setTargetForm({...targetForm, amount: e.target.value})} />
-            </div>
-
-            <button type="submit" disabled={isSaving} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-blue-700 active:scale-95 transition flex justify-center items-center gap-2">
-              {isSaving ? 'กำลังบันทึก...' : <><CheckCircle className="h-5 w-5"/> บันทึกเป้าหมาย</>}
-            </button>
-          </form>
-        )}
-
-      </main>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 pb-safe shadow-lg">
-        <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center p-2 rounded-lg w-1/3 ${activeTab === 'dashboard' ? 'text-emerald-600 font-semibold bg-emerald-50' : 'text-gray-500'}`}>
-          <BarChart3 className="h-6 w-6" />
-          <span className="text-xs mt-1">แดชบอร์ด</span>
-        </button>
-        <button onClick={() => setActiveTab('record')} className={`flex flex-col items-center p-2 rounded-lg w-1/3 ${activeTab === 'record' ? 'text-emerald-600 font-semibold bg-emerald-50' : 'text-gray-500'}`}>
-          <MapPin className="h-6 w-6" />
-          <span className="text-xs mt-1">ลงพื้นที่</span>
-        </button>
-        <button onClick={() => setActiveTab('target')} className={`flex flex-col items-center p-2 rounded-lg w-1/3 ${activeTab === 'target' ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-500'}`}>
-          <Target className="h-6 w-6" />
-          <span className="text-xs mt-1">เป้าหมาย</span>
-        </button>
-      </nav>
-    </div>
-  );
-}
+            );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
