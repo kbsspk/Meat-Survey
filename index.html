@@ -14,7 +14,7 @@
 
     <script type="text/babel">
         // ลิงก์ Google Apps Script ของคุณ
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzqrvW7UBy-RqzgaTXD2OPc6bssTo2CTuzUoEIXtahb4MynRRALPmYlc8QjCUPQ6tXB/exec"; 
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyZ3OdXk_ir4pog8WGJlSMVYsWl55-RECead8kFtPo5tb5QngOtgnso-lKM659S9er7/exec"; 
 
         const { useState, useEffect } = React;
 
@@ -34,6 +34,7 @@
         const MapPin = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
         const CheckCircle = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
         const ClipboardList = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>;
+        const XIcon = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
 
         function App() {
             const [activeTab, setActiveTab] = useState('dashboard');
@@ -43,6 +44,9 @@
             const [isSaving, setIsSaving] = useState(false);
             const [alertMsg, setAlertMsg] = useState(null);
             
+            // State สำหรับแสดงรูปเต็มจอ
+            const [fullSizeImage, setFullSizeImage] = useState(null);
+
             // Filter state สำหรับหน้าประวัติ
             const [filterProvince, setFilterProvince] = useState('all');
 
@@ -68,7 +72,7 @@
                     setTargets(data.targets || {});
                 } catch (error) {
                     console.error("Error fetching data:", error);
-                    showAlert('เชื่อมต่อสำเร็จ แต่ยังไม่มีข้อมูล กรุณาทดลองบันทึก', 'success');
+                    showAlert('เชื่อมต่อสำเร็จ แต่ยังไม่มีข้อมูล หรือเกิดข้อผิดพลาดในการดึงข้อมูล', 'success');
                 }
                 setIsLoading(false);
             };
@@ -177,6 +181,7 @@
 
             return (
                 <div className="min-h-screen bg-gray-50 pb-24">
+                    {/* Header */}
                     <header className="bg-emerald-700 text-white p-4 shadow-md sticky top-0 z-10">
                         <h1 className="text-xl font-bold flex items-center gap-2">
                             <FileText className="h-6 w-6" /> ระบบรายงานสถานที่ผลิตเนื้อสัตว์
@@ -184,9 +189,31 @@
                         <p className="text-sm text-emerald-100">เขตภาคกลาง (สสจ.)</p>
                     </header>
 
+                    {/* Alert Banner */}
                     {alertMsg && (
                         <div className={`fixed top-20 left-1/2 -translate-x-1/2 p-3 rounded shadow-lg z-50 text-white w-11/12 max-w-sm text-center ${alertMsg.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
                             {alertMsg.text}
+                        </div>
+                    )}
+
+                    {/* Image Lightbox (ขยายรูปเต็มจอ) */}
+                    {fullSizeImage && (
+                        <div 
+                            className="fixed inset-0 z-[100] bg-black bg-opacity-90 flex items-center justify-center p-4"
+                            onClick={() => setFullSizeImage(null)}
+                        >
+                            <button 
+                                className="absolute top-4 right-4 bg-gray-800 text-white p-2 rounded-full hover:bg-gray-700 transition"
+                                onClick={(e) => { e.stopPropagation(); setFullSizeImage(null); }}
+                            >
+                                <XIcon className="h-6 w-6" />
+                            </button>
+                            <img 
+                                src={fullSizeImage} 
+                                alt="รูปภาพเต็มจอ" 
+                                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                                onClick={(e) => e.stopPropagation()} 
+                            />
                         </div>
                     )}
 
@@ -316,7 +343,7 @@
                             </form>
                         )}
 
-                        {/* TAB: HISTORY (แท็บใหม่) */}
+                        {/* TAB: HISTORY */}
                         {activeTab === 'history' && (
                             <div className="space-y-4">
                                 <div className="bg-white rounded-xl shadow border border-gray-100 p-5">
@@ -359,10 +386,22 @@
                                                         <p className="text-sm text-gray-700 whitespace-pre-wrap"><span className="font-semibold text-gray-900">คำแนะนำ:</span> {record.advice}</p>
                                                     </div>
                                                 </div>
-                                                {/* แสดงรูปภาพถ้ามี */}
+                                                {/* แสดงรูปภาพและใส่คำสั่ง Click เพื่อขยายรูป */}
                                                 {record.photo && record.photo.startsWith('data:image') && (
-                                                    <div className="border-t border-gray-100 bg-gray-50 p-2">
-                                                        <img src={record.photo} alt="ภาพลงพื้นที่" className="w-full h-48 object-cover rounded shadow-sm" />
+                                                    <div 
+                                                        className="border-t border-gray-100 bg-gray-100 p-2 cursor-pointer group relative"
+                                                        onClick={() => setFullSizeImage(record.photo)}
+                                                    >
+                                                        <img 
+                                                            src={record.photo} 
+                                                            alt="ภาพลงพื้นที่" 
+                                                            className="w-full h-48 object-cover rounded shadow-sm group-hover:opacity-90 transition" 
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition bg-black bg-opacity-20 rounded">
+                                                            <span className="bg-white text-gray-800 text-xs font-bold py-1 px-3 rounded-full shadow-md">
+                                                                คลิกเพื่อขยาย
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
@@ -403,8 +442,8 @@
 
                     </main>
 
-                    {/* อัปเดตเมนูด้านล่างให้มี 4 ปุ่ม (แบ่งกว้าง 25%) */}
-                    <nav className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                    {/* Bottom Navigation */}
+                    <nav className="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40">
                         <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${activeTab === 'dashboard' ? 'text-emerald-600 font-semibold bg-emerald-50' : 'text-gray-500'}`}>
                             <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6" />
                             <span className="text-[10px] sm:text-xs mt-1">แดชบอร์ด</span>
